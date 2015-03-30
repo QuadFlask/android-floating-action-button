@@ -1,5 +1,6 @@
 package com.getbase.floatingactionbutton;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -13,6 +14,7 @@ import android.os.Parcelable;
 import android.support.annotation.ColorRes;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.TouchDelegate;
 import android.view.View;
@@ -315,7 +317,7 @@ public class FloatingActionsMenu extends ViewGroup {
         LayoutParams params = (LayoutParams) child.getLayoutParams();
         params.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
         params.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-        params.setAnimationsTarget(child, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount));
+        params.setAnimationsTarget(child, delayAt(i));
 
         View label = (View) child.getTag(R.id.fab_label);
         if (label != null) {
@@ -336,10 +338,10 @@ public class FloatingActionsMenu extends ViewGroup {
           label.layout(labelLeft, labelTop, labelRight, labelTop + label.getMeasuredHeight());
 
           Rect touchArea = new Rect(
-              Math.min(childX, labelLeft),
-              childY - mButtonSpacing / 2,
-              Math.max(childX + child.getMeasuredWidth(), labelRight),
-              childY + child.getMeasuredHeight() + mButtonSpacing / 2);
+                  Math.min(childX, labelLeft),
+                  childY - mButtonSpacing / 2,
+                  Math.max(childX + child.getMeasuredWidth(), labelRight),
+                  childY + child.getMeasuredHeight() + mButtonSpacing / 2);
           mTouchDelegateGroup.addTouchDelegate(new TouchDelegate(touchArea, child));
 
           label.setTranslationY(mExpanded ? expandedTranslation : collapsedTranslation);
@@ -348,7 +350,7 @@ public class FloatingActionsMenu extends ViewGroup {
           LayoutParams labelParams = (LayoutParams) label.getLayoutParams();
           labelParams.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
           labelParams.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-          labelParams.setAnimationsTarget(label, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount), false);
+          labelParams.setAnimationsTarget(label, delayAt(i), false);
         }
 
         nextY = expandUp ?
@@ -388,7 +390,7 @@ public class FloatingActionsMenu extends ViewGroup {
         LayoutParams params = (LayoutParams) child.getLayoutParams();
         params.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
         params.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-        params.setAnimationsTarget(child, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount));
+        params.setAnimationsTarget(child, delayAt(i));
 
         nextX = expandLeft ?
             childX - mButtonSpacing :
@@ -397,6 +399,10 @@ public class FloatingActionsMenu extends ViewGroup {
 
       break;
     }
+  }
+
+  private int delayAt(int i){
+    return (mButtonsCount-i-2)*ANIMATION_DURATION/(mButtonsCount-1);
   }
 
   @Override
@@ -473,16 +479,62 @@ public class FloatingActionsMenu extends ViewGroup {
           mExpandDir.setProperty(View.TRANSLATION_X);
           break;
       }
+
+      mCollapseAlpha.addListener(new Animator.AnimatorListener() {
+        @Override
+        public void onAnimationStart(Animator animation) {
+          ((View)mCollapseAlpha.getTarget()).setVisibility(VISIBLE);
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+          ((View)mCollapseAlpha.getTarget()).setVisibility(INVISIBLE);
+          ((View)mCollapseAlpha.getTarget()).setClickable(false);
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {
+
+        }
+
+        @Override
+        public void onAnimationRepeat(Animator animation) {
+
+        }
+      });
+      mExpandAlpha.addListener(new Animator.AnimatorListener() {
+        @Override
+        public void onAnimationStart(Animator animation) {
+          ((View)mExpandAlpha.getTarget()).setVisibility(VISIBLE);
+          ((View)mCollapseAlpha.getTarget()).setClickable(true);
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+          ((View)mExpandAlpha.getTarget()).setVisibility(VISIBLE);
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {
+
+        }
+
+        @Override
+        public void onAnimationRepeat(Animator animation) {
+
+        }
+      });
     }
 
-    public void setAnimationsTarget(View view, int delay, boolean scale) {
+    public void setAnimationsTarget(final View view, int delay, boolean scale) {
+      view.setClickable(false);
       mCollapseAlpha.setTarget(view);
       mCollapseDir.setTarget(view);
       mExpandAlpha.setTarget(view);
       mExpandDir.setTarget(view);
 
-      mCollapseAlpha.setStartDelay(delay);
-      mCollapseDir.setStartDelay(delay);
+      mCollapseAlpha.setStartDelay(ANIMATION_DURATION-delay);
+      mCollapseDir.setStartDelay(ANIMATION_DURATION-delay);
       mExpandAlpha.setStartDelay(delay);
       mExpandDir.setStartDelay(delay);
 
@@ -493,9 +545,9 @@ public class FloatingActionsMenu extends ViewGroup {
         mCollapseScaleY.setTarget(view);
 
         mExpandScaleX.setStartDelay(delay);
-        mCollapseScaleX.setStartDelay(delay);
+        mCollapseScaleX.setStartDelay(ANIMATION_DURATION-delay);
         mExpandScaleY.setStartDelay(delay);
-        mCollapseScaleY.setStartDelay(delay);
+        mCollapseScaleY.setStartDelay(ANIMATION_DURATION-delay);
       }
 
       // Now that the animations have targets, set them to be played
