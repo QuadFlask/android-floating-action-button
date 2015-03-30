@@ -308,8 +308,8 @@ public class FloatingActionsMenu extends ViewGroup {
         int childY = expandUp ? nextY - child.getMeasuredHeight() : nextY;
         child.layout(childX, childY, childX + child.getMeasuredWidth(), childY + child.getMeasuredHeight());
 
-        float collapsedTranslation = mButtonSpacing*2; // addButtonY - childY;
-        float expandedTranslation = 0f;
+        float collapsedTranslation = mButtonSpacing*2;
+        float expandedTranslation = 0;
 
         child.setTranslationY(mExpanded ? expandedTranslation : collapsedTranslation);
         child.setAlpha(mExpanded ? 1f : 0f);
