@@ -306,8 +306,8 @@ public class FloatingActionsMenu extends ViewGroup {
         int childY = expandUp ? nextY - child.getMeasuredHeight() : nextY;
         child.layout(childX, childY, childX + child.getMeasuredWidth(), childY + child.getMeasuredHeight());
 
-        float collapsedTranslation = addButtonY - childY;
-        float expandedTranslation = 0f;
+        float collapsedTranslation = mButtonSpacing*2;
+        float expandedTranslation = 0;
 
         child.setTranslationY(mExpanded ? expandedTranslation : collapsedTranslation);
         child.setAlpha(mExpanded ? 1f : 0f);
@@ -315,7 +315,7 @@ public class FloatingActionsMenu extends ViewGroup {
         LayoutParams params = (LayoutParams) child.getLayoutParams();
         params.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
         params.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-        params.setAnimationsTarget(child);
+        params.setAnimationsTarget(child, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount));
 
         View label = (View) child.getTag(R.id.fab_label);
         if (label != null) {
@@ -348,7 +348,7 @@ public class FloatingActionsMenu extends ViewGroup {
           LayoutParams labelParams = (LayoutParams) label.getLayoutParams();
           labelParams.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
           labelParams.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-          labelParams.setAnimationsTarget(label);
+          labelParams.setAnimationsTarget(label, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount), false);
         }
 
         nextY = expandUp ?
@@ -388,7 +388,7 @@ public class FloatingActionsMenu extends ViewGroup {
         LayoutParams params = (LayoutParams) child.getLayoutParams();
         params.mCollapseDir.setFloatValues(expandedTranslation, collapsedTranslation);
         params.mExpandDir.setFloatValues(collapsedTranslation, expandedTranslation);
-        params.setAnimationsTarget(child);
+        params.setAnimationsTarget(child, (mButtonsCount-i-1)/(mButtonsCount-1)* ANIMATION_DURATION / (mButtonsCount));
 
         nextX = expandLeft ?
             childX - mButtonSpacing :
@@ -427,8 +427,12 @@ public class FloatingActionsMenu extends ViewGroup {
 
     private ObjectAnimator mExpandDir = new ObjectAnimator();
     private ObjectAnimator mExpandAlpha = new ObjectAnimator();
+    private ObjectAnimator mExpandScaleX = new ObjectAnimator();
+    private ObjectAnimator mExpandScaleY = new ObjectAnimator();
     private ObjectAnimator mCollapseDir = new ObjectAnimator();
     private ObjectAnimator mCollapseAlpha = new ObjectAnimator();
+    private ObjectAnimator mCollapseScaleX = new ObjectAnimator();
+    private ObjectAnimator mCollapseScaleY = new ObjectAnimator();
     private boolean animationsSetToPlay;
 
     public LayoutParams(ViewGroup.LayoutParams source) {
@@ -436,14 +440,26 @@ public class FloatingActionsMenu extends ViewGroup {
 
       mExpandDir.setInterpolator(sExpandInterpolator);
       mExpandAlpha.setInterpolator(sAlphaExpandInterpolator);
+      mExpandScaleX.setInterpolator(sAlphaExpandInterpolator);
+      mExpandScaleY.setInterpolator(sAlphaExpandInterpolator);
       mCollapseDir.setInterpolator(sCollapseInterpolator);
       mCollapseAlpha.setInterpolator(sCollapseInterpolator);
+      mCollapseScaleX.setInterpolator(sAlphaExpandInterpolator);
+      mCollapseScaleY.setInterpolator(sAlphaExpandInterpolator);
 
       mCollapseAlpha.setProperty(View.ALPHA);
       mCollapseAlpha.setFloatValues(1f, 0f);
+      mCollapseScaleX.setProperty(View.SCALE_X);
+      mCollapseScaleY.setProperty(View.SCALE_Y);
+      mCollapseScaleX.setFloatValues(1f, 0f);
+      mCollapseScaleY.setFloatValues(1f, 0f);
 
       mExpandAlpha.setProperty(View.ALPHA);
       mExpandAlpha.setFloatValues(0f, 1f);
+      mExpandScaleX.setProperty(View.SCALE_X);
+      mExpandScaleY.setProperty(View.SCALE_Y);
+      mExpandScaleX.setFloatValues(0f, 1f);
+      mExpandScaleY.setFloatValues(0f, 1f);
 
       switch (mExpandDirection) {
       case EXPAND_UP:
@@ -459,11 +475,28 @@ public class FloatingActionsMenu extends ViewGroup {
       }
     }
 
-    public void setAnimationsTarget(View view) {
+    public void setAnimationsTarget(View view, int delay, boolean scale) {
       mCollapseAlpha.setTarget(view);
       mCollapseDir.setTarget(view);
       mExpandAlpha.setTarget(view);
       mExpandDir.setTarget(view);
+
+      mCollapseAlpha.setStartDelay(delay);
+      mCollapseDir.setStartDelay(delay);
+      mExpandAlpha.setStartDelay(delay);
+      mExpandDir.setStartDelay(delay);
+
+      if(scale) {
+        mExpandScaleX.setTarget(view);
+        mCollapseScaleX.setTarget(view);
+        mExpandScaleY.setTarget(view);
+        mCollapseScaleY.setTarget(view);
+
+        mExpandScaleX.setStartDelay(delay);
+        mCollapseScaleX.setStartDelay(delay);
+        mExpandScaleY.setStartDelay(delay);
+        mCollapseScaleY.setStartDelay(delay);
+      }
 
       // Now that the animations have targets, set them to be played
       if (!animationsSetToPlay) {
@@ -471,8 +504,18 @@ public class FloatingActionsMenu extends ViewGroup {
         mCollapseAnimation.play(mCollapseDir);
         mExpandAnimation.play(mExpandAlpha);
         mExpandAnimation.play(mExpandDir);
+        if(scale) {
+          mCollapseAnimation.play(mCollapseScaleX);
+          mCollapseAnimation.play(mCollapseScaleY);
+          mExpandAnimation.play(mExpandScaleX);
+          mExpandAnimation.play(mExpandScaleY);
+        }
         animationsSetToPlay = true;
       }
+    }
+
+    public void setAnimationsTarget(View view, int delay) {
+      setAnimationsTarget(view, delay, true);
     }
   }
 
